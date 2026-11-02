@@ -1,0 +1,3 @@
+import {NextResponse} from 'next/server';import {currentUser} from '../../../lib/auth';import {db} from '../../../lib/db';
+export const runtime='nodejs';
+export async function GET(){try{const u=await currentUser();if(!u)return NextResponse.json({items:[]},{status:401});const r=await db().query(`SELECT o.id,o.side,o.order_type,o.status,o.quantity::text,o.average_fill_price::text AS price,o.data_source,o.created_at,a.symbol FROM trading_orders o JOIN portfolios p ON p.id=o.portfolio_id JOIN assets a ON a.id=o.asset_id WHERE p.user_id=$1 ORDER BY o.created_at DESC LIMIT 100`,[u.id]);return NextResponse.json({items:r.rows})}catch{return NextResponse.json({error:'Orders unavailable',items:[]},{status:500})}}

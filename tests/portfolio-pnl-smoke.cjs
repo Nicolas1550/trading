@@ -1,0 +1,14 @@
+const assert=require('node:assert/strict');const fs=require('node:fs'),path=require('node:path'),Module=require('node:module'),ts=require('typescript');
+const file=path.join(__dirname,'../lib/portfolio-pnl.ts');const js=ts.transpileModule(fs.readFileSync(file,'utf8'),{fileName:file,compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+const mod=new Module(file);mod.filename=file;mod.paths=Module._nodeModulePaths(__dirname);mod._compile(js,file);
+const {aggregatePortfolio}=mod.exports;
+const tx=[{symbol:'NVDA',side:'buy',quantity:'10',price:'100',fee:'2'},{symbol:'NVDA',side:'sell',quantity:'4',price:'120',fee:'1'}];
+const marks={NVDA:{price:110,source:'twelvedata',asOf:'2026-11-01',status:'ok'}};
+const r=aggregatePortfolio(tx,10000,marks);
+assert.equal(r.cash,9477);assert.equal(r.realizedPnl,78.2);assert.equal(r.unrealizedPnl,58.8);assert.equal(r.totalPnl,137);assert.equal(r.equity,10137);
+assert.equal(r.assets[0].quantity,6);assert.equal(r.assets[0].averageCost,100.2);assert.equal(r.assets[0].marketValue,660);
+const missing=aggregatePortfolio(tx,10000,{});assert.equal(missing.totalPnl,null);assert.equal(missing.unrealizedPnl,null);assert.equal(missing.realizedPnl,78.2);assert.deepEqual(missing.missingQuotes,['NVDA']);
+const closed=aggregatePortfolio([...tx,{symbol:'NVDA',side:'sell',quantity:'6',price:'90',fee:'3'}],10000,{});assert.equal(closed.realizedPnl,14);assert.equal(closed.equity,10014);assert.equal(closed.totalPnl,14);assert.equal(closed.assets[0].quantity,0);assert.equal(closed.complete,true);
+const two=aggregatePortfolio([...tx,{symbol:'AAPL',side:'buy',quantity:2,price:50,fee:0}],10000,marks);assert.equal(two.totalPnl,null);assert.deepEqual(two.missingQuotes,['AAPL']);
+const invalid=aggregatePortfolio([{symbol:'AAPL',side:'sell',quantity:1,price:100,fee:0}],10000,{});assert.equal(invalid.invalidTransactions,1);assert.equal(invalid.cash,10000);
+console.log('PASS weighted-average cost, partial sale and fees, closed trades, missing quotes, invalid data');

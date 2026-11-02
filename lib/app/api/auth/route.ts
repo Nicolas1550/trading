@@ -1,0 +1,9 @@
+import {NextRequest,NextResponse} from 'next/server';
+import bcrypt from 'bcryptjs';
+import {db} from '../../../lib/db';
+import {currentUser,setSession,clearSession} from '../../../lib/auth';
+import {error,unexpected} from '../../../lib/http';
+export const runtime='nodejs';
+export async function GET(){try{return NextResponse.json({user:await currentUser()})}catch(e){return unexpected(e)}}
+export async function DELETE(){try{await clearSession();return NextResponse.json({ok:true})}catch(e){return unexpected(e)}}
+export async function POST(req:NextRequest){try{const {action,name,email,password}=await req.json();if(typeof email!=='string'||typeof password!=='string'||email.length>255||password.length<8||password.length>128)return error('Email and password (8–128 characters) required');const normalized=email.trim().toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized))return error('Invalid email');if(action==='register'){if(typeof name!=='string'||!name.trim()||name.length>120)return error('Name required');const passwordHash=await bcrypt.hash(password,12);let user;try{const r=await db().query('INSERT INTO users(name,email,password_hash) VALUES ($1,$2,$3) RETURNING id,name,email',[name.trim(),normalized,passwordHash]);user=r.rows[0]}catch(e){if((e as {code?:string}).code==='23505')return error('Email already registered',409);throw e}await db().query('INSERT INTO watchlists(user_id,name) VALUES ($1,$2)',[user.id,'My Watchlist']);await setSession(user.id);return NextResponse.json({user})}if(action==='login'){const r=await db().query('SELECT id,name,email,password_hash FROM users WHERE email=$1',[normalized]);const user=r.rows[0];if(!user||!await bcrypt.compare(password,user.password_hash))return error('Invalid credentials',401);await setSession(user.id);return NextResponse.json({user:{id:user.id,name:user.name,email:user.email}})}return error('Unknown action')}catch(e){return unexpected(e)}}

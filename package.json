@@ -1,0 +1,33 @@
+{
+  "name": "quantum-v16-portfolio-intelligence",
+  "version": "16.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test:indicators": "node tests/indicator-smoke.cjs",
+    "test:feeds": "node tests/market-feed-smoke.cjs",
+    "test:market-stats": "node tests/market-stats-smoke.cjs",
+    "test": "npm run test:indicators && npm run test:feeds && npm run test:market-stats && npm run test:custom-studies && npm run test:pnl",
+    "test:custom-studies": "node tests/custom-studies-smoke.cjs",
+    "test:pnl": "node tests/portfolio-pnl-smoke.cjs"
+  },
+  "dependencies": {
+    "next": "^15.5.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "recharts": "^2.15.4",
+    "lucide-react": "^0.468.0",
+    "pg": "^8.16.3",
+    "bcryptjs": "^3.0.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/pg": "^8.15.5"
+  }
+}
